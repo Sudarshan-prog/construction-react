@@ -274,6 +274,7 @@ def login():
     data = request.json
     email = data.get('email')
     password = data.get('password')
+    requested_role = data.get('role') # Get the role user wants to sign in as
 
     if not email or not password:
         return jsonify({"error": "Email and password are required"}), 400
@@ -285,12 +286,27 @@ def login():
 
     # User indexes: 0:id, 1:email, 2:password, 3:role, 4:created_at
     if user and check_password_hash(user[2], password):
+        user_id = user[0]
+        current_role = user[3] if len(user) > 3 else "client"
+        
+        # If user explicitly requested a role (from dropdown), update it in DB
+        if requested_role and requested_role != current_role:
+            try:
+                with sqlite3.connect(DB_NAME) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("UPDATE users SET role = ? WHERE id = ?", (requested_role, user_id))
+                    conn.commit()
+                current_role = requested_role
+                print(f"Updated user {email} role to {requested_role} during login")
+            except Exception as e:
+                print(f"Error updating role during login: {e}")
+
         return jsonify({
             "message": "Login successful",
             "user": {
-                "id": user[0], 
+                "id": user_id, 
                 "email": user[1],
-                "role": user[3] if len(user) > 3 else "client"
+                "role": current_role
             },
             "token": "mock-jwt-token-xyz-123" 
         }), 200
