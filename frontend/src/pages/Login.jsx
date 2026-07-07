@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
+import { login } from '../api/authApi';
 
 const Login = () => {
     const navigate = useNavigate();
@@ -8,6 +9,7 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -23,37 +25,21 @@ const Login = () => {
             return;
         }
 
+        setLoading(true);
+
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const response = await fetch(`${apiUrl}/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
-            });
+            const data = await login(formData.email, formData.password, formData.role);
 
-            const data = await response.json();
-
-            if (response.ok) {
-                // SUCCESS - Redirect immediately
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                window.dispatchEvent(new Event('user-state-change'));
-                navigate(data.user.role === 'builder' ? '/builder-dashboard' : '/client-dashboard');
-            } else {
-                setError(data.error || 'Invalid email or password');
-            }
-        } catch (err) {
-            console.error("Login attempt entering Demo/Catch-all mode:", err);
-            // Strict Demo Mode based on User Choice
-            localStorage.setItem('token', 'demo-token');
-            const demoUser = {
-                email: formData.email,
-                id: 'demo-user',
-                role: formData.role
-            };
-            localStorage.setItem('user', JSON.stringify(demoUser));
+            // SUCCESS - Redirect immediately
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
             window.dispatchEvent(new Event('user-state-change'));
-            navigate(formData.role === 'builder' ? '/builder-dashboard' : '/client-dashboard');
+            navigate(data.user.role === 'builder' ? '/builder-dashboard' : '/client-dashboard');
+        } catch (err) {
+            console.error("Login failed:", err);
+            setError(err.message || 'Unable to connect to server. Please try again later.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -124,9 +110,10 @@ const Login = () => {
                     <div>
                         <button
                             type="submit"
-                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-accent hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent transition-colors shadow-lg font-bold"
+                            disabled={loading}
+                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-accent hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent transition-colors shadow-lg font-bold disabled:opacity-70"
                         >
-                            Sign In
+                            {loading ? 'Signing In...' : 'Sign In'}
                         </button>
                     </div>
                 </form>

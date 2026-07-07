@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
+import { register } from '../api/authApi';
 
 const Register = () => {
     const navigate = useNavigate();
@@ -32,37 +33,22 @@ const Register = () => {
             return;
         }
 
+        if (formData.password.length < 6) {
+            setError('Password must be at least 6 characters');
+            return;
+        }
+
         setLoading(true);
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const response = await fetch(`${apiUrl}/register`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email: formData.email,
-                    password: formData.password,
-                    role: formData.role
-                }),
-            });
+            await register(formData.email, formData.password, formData.role);
 
-            const data = await response.json();
-
-            if (response.ok) {
-                // Registration successful
-                alert('Registration successful! Please login.');
-                navigate('/login');
-            } else {
-                setError(data.error || 'Registration failed');
-            }
-        } catch (err) {
-            console.error(err);
-            // Demo Mode Fallback
-            setError('');
-            alert('Registration successful (Demo Mode)! Please login.');
+            // Registration successful
+            alert('Registration successful! Please login.');
             navigate('/login');
+        } catch (err) {
+            console.error('Registration failed:', err);
+            setError(err.message || 'Unable to connect to server. Please try again later.');
         } finally {
             setLoading(false);
         }

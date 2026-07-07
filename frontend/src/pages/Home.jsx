@@ -1,7 +1,64 @@
-import React from 'react';
-import { ShieldCheck, Gauge, Clock, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ShieldCheck, Gauge, Clock, User, Star, Search } from 'lucide-react';
+import { getFeaturedContractors } from '../api/contractorApi';
+import { getRecentReviews } from '../api/reviewApi';
+import { submitQuote } from '../api/quoteApi';
+
+// Fallback data when API is unreachable
+const FALLBACK_REVIEWS = [
+    { id: 1, text: "The team was professional and the project was completed with exceptional quality. Highly recommend!", author: "Homeowner", rating: 5 },
+];
 
 const Home = () => {
+    const navigate = useNavigate();
+    const [searchQuery, setSearchQuery] = useState('');
+    const [reviews, setReviews] = useState(FALLBACK_REVIEWS);
+    const [loadingReviews, setLoadingReviews] = useState(true);
+
+    // Quote form state
+    const [quoteForm, setQuoteForm] = useState({ name: '', email: '', details: '' });
+    const [quoteStatus, setQuoteStatus] = useState('idle');
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const reviewsData = await getRecentReviews();
+                if (Array.isArray(reviewsData) && reviewsData.length > 0) {
+                    setReviews(reviewsData);
+                }
+            } catch (err) {
+                console.error('Failed to fetch homepage data:', err);
+                // Keep fallback data
+            } finally {
+                setLoadingReviews(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+    const handleSearch = (e) => {
+        e.preventDefault();
+        if (searchQuery.trim()) {
+            navigate(`/contractors/search?query=${encodeURIComponent(searchQuery.trim())}`);
+        }
+    };
+
+    const handleQuoteSubmit = async (e) => {
+        e.preventDefault();
+        if (!quoteForm.name || !quoteForm.email || !quoteForm.details) return;
+        setQuoteStatus('sending');
+        try {
+            await submitQuote({ name: quoteForm.name, email: quoteForm.email, message: quoteForm.details, projectType: 'General' });
+            setQuoteStatus('success');
+            setQuoteForm({ name: '', email: '', details: '' });
+        } catch (err) {
+            console.error('Failed to submit quote:', err);
+            // Fallback: navigate to contact page
+            navigate('/contact');
+        }
+    };
+
     return (
         <div className="flex flex-col min-h-screen">
 
@@ -108,14 +165,19 @@ const Home = () => {
             <section className="py-16 bg-bg-light">
                 <div className="container mx-auto px-4 text-center">
                     <h2 className="text-3xl font-bold text-primary mb-8">What Our Clients Say</h2>
-                    <div className="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-md border-l-4 border-accent relative">
-
-                        <p className="text-lg text-gray-700 italic mb-6">"The team was professional and the project was completed with exceptional quality. Highly recommend!"</p>
-                        <div className="font-bold text-primary flex items-center justify-center gap-2">
-                            <User size={20} />
-                            <span>- Homeowner</span>
+                    {loadingReviews ? (
+                        <div className="flex justify-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-md border-l-4 border-accent relative">
+                            <p className="text-lg text-gray-700 italic mb-6">"{reviews[0]?.text || 'The team was professional and the project was completed with exceptional quality. Highly recommend!'}"</p>
+                            <div className="font-bold text-primary flex items-center justify-center gap-2">
+                                <User size={20} />
+                                <span>- {reviews[0]?.author || 'Homeowner'}</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </section>
 
@@ -124,24 +186,56 @@ const Home = () => {
                 <div className="container mx-auto px-4">
                     <h2 className="text-3xl font-bold mb-8">Get a Free Quote</h2>
                     <div className="max-w-2xl mx-auto bg-white text-gray-800 p-8 rounded-xl shadow-2xl">
-                        <form className="space-y-4 text-left">
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Name</label>
-                                <input type="text" className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-accent outline-none" placeholder="Your Name" />
+                        {quoteStatus === 'success' ? (
+                            <div className="text-center py-4">
+                                <h3 className="text-xl font-bold text-green-600 mb-2">Request Sent!</h3>
+                                <p className="text-gray-500">We'll get back to you shortly.</p>
+                                <button onClick={() => setQuoteStatus('idle')} className="mt-4 text-primary font-bold hover:underline">Send another</button>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Email</label>
-                                <input type="email" className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-accent outline-none" placeholder="your@email.com" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Project Details</label>
-                                <textarea className="w-full p-3 border rounded-lg h-32 focus:ring-2 focus:ring-accent outline-none" placeholder="Tell us about your project..."></textarea>
-                            </div>
-                            <button type="submit" className="w-full bg-accent text-white font-bold py-3 rounded-lg hover:bg-orange-600 transition-colors">
-                                Send Request
-                            </button>
-                            <p className="text-xs text-gray-500 mt-2 text-center">We respect your privacy.</p>
-                        </form>
+                        ) : (
+                            <form className="space-y-4 text-left" onSubmit={handleQuoteSubmit}>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Name</label>
+                                    <input
+                                        type="text"
+                                        value={quoteForm.name}
+                                        onChange={(e) => setQuoteForm({ ...quoteForm, name: e.target.value })}
+                                        className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-accent outline-none"
+                                        placeholder="Your Name"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Email</label>
+                                    <input
+                                        type="email"
+                                        value={quoteForm.email}
+                                        onChange={(e) => setQuoteForm({ ...quoteForm, email: e.target.value })}
+                                        className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-accent outline-none"
+                                        placeholder="your@email.com"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Project Details</label>
+                                    <textarea
+                                        value={quoteForm.details}
+                                        onChange={(e) => setQuoteForm({ ...quoteForm, details: e.target.value })}
+                                        className="w-full p-3 border rounded-lg h-32 focus:ring-2 focus:ring-accent outline-none"
+                                        placeholder="Tell us about your project..."
+                                        required
+                                    ></textarea>
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={quoteStatus === 'sending'}
+                                    className="w-full bg-accent text-white font-bold py-3 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-70"
+                                >
+                                    {quoteStatus === 'sending' ? 'Sending...' : 'Send Request'}
+                                </button>
+                                <p className="text-xs text-gray-500 mt-2 text-center">We respect your privacy.</p>
+                            </form>
+                        )}
                     </div>
                 </div>
             </section>

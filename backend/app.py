@@ -98,7 +98,7 @@ def generate_all_embeddings():
     global document_embeddings
     document_embeddings = []
     
-    print("🔄 Generating embeddings for all documents...")
+    print("INFO: Generating embeddings for all documents...")
     for i, doc in enumerate(knowledge_base):
         text = f"{doc['title']}: {doc['content']}"
         embedding = get_embedding(text)

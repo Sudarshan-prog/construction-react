@@ -15,6 +15,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ClientDashboard from './pages/ClientDashboard';
 import BuilderDashboard from './pages/BuilderDashboard';
+import ContractorSearch from './pages/ContractorSearch';
+import ContractorDetail from './pages/ContractorDetail';
 
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -60,6 +62,8 @@ function App() {
                         <Route path="/support" element={<Support />} />
                         <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />
+                        <Route path="/contractors/search" element={<ContractorSearch />} />
+                        <Route path="/contractors/:id" element={<ContractorDetail />} />
 
                         <Route
                             path="/client-dashboard"

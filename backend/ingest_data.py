@@ -49,7 +49,7 @@ def get_embedding(text):
         # Add delay to avoid rate limiting
         time.sleep(0.5)
         result = genai.embed_content(
-            model="models/text-embedding-004",
+            model="models/gemini-embedding-001",
             content=text,
             task_type="retrieval_document"
         )
@@ -162,7 +162,7 @@ def create_knowledge_base():
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(knowledge_base, f, indent=2, ensure_ascii=False)
     
-    print(f"\n✅ Knowledge base created at {output_path}")
+    print(f"\nDONE: Knowledge base created at {output_path}")
     print(f"Total documents: {len(knowledge_base)}")
     
     # Generate embeddings
@@ -186,7 +186,7 @@ def create_knowledge_base():
         with open(embeddings_path, 'w', encoding='utf-8') as f:
             json.dump(document_embeddings, f)
         
-        print(f"✅ Saved {len(document_embeddings)} embeddings to {embeddings_path}")
+        print(f"DONE: Saved {len(document_embeddings)} embeddings to {embeddings_path}")
     
     return knowledge_base
 
