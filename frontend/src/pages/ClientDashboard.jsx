@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, LogOut, Plus, Clock, FileText } from 'lucide-react';
+import { getClientQuotes } from '../api/quoteApi';
 
 const ClientDashboard = () => {
     const navigate = useNavigate();
 
-    // Initialize state from localStorage to prevent blank flicker
+    // State for user
     const [user] = useState(() => {
         try {
             const saved = localStorage.getItem('user');
@@ -16,16 +17,27 @@ const ClientDashboard = () => {
         }
     });
 
-    // Sample data for a "complete" feel
-    const [projects] = useState([
-        { id: 1, title: 'Modular Home Expansion', status: 'In Planning', budget: '₹12,40,000', lastUpdate: '2 days ago' },
-        { id: 2, title: 'Kitchen Renovation', status: 'Quote Received', budget: '₹4,50,000', lastUpdate: '1 week ago' }
-    ]);
+    const [projects, setProjects] = useState([]);
+    const [loadingProjects, setLoadingProjects] = useState(true);
 
     useEffect(() => {
         if (!user) {
             navigate('/login');
+            return;
         }
+
+        const fetchQuotes = async () => {
+            try {
+                const data = await getClientQuotes();
+                setProjects(data);
+            } catch (err) {
+                console.error("Failed to fetch client quotes", err);
+            } finally {
+                setLoadingProjects(false);
+            }
+        };
+
+        fetchQuotes();
     }, [user, navigate]);
 
     const handleLogout = () => {
@@ -83,15 +95,15 @@ const ClientDashboard = () => {
                                     <div key={project.id} className="p-4 border rounded-xl hover:shadow-md transition-shadow flex justify-between items-center group">
                                         <div className="flex items-center gap-4">
                                             <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-primary font-bold">
-                                                {project.title.charAt(0)}
+                                                {project.projectType ? project.projectType.charAt(0) : 'P'}
                                             </div>
                                             <div>
-                                                <h3 className="font-bold text-lg group-hover:text-accent transition-colors">{project.title}</h3>
-                                                <p className="text-sm text-gray-500">Last updated: {project.lastUpdate}</p>
+                                                <h3 className="font-bold text-lg group-hover:text-accent transition-colors">{project.projectType}</h3>
+                                                <p className="text-sm text-gray-500">Submitted: {new Date(project.createdAt).toLocaleDateString()}</p>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <div className="font-bold text-primary">{project.budget}</div>
+                                            <div className="font-bold text-primary">{project.budget || 'TBD'}</div>
                                             <div className="text-xs bg-orange-100 text-accent px-2 py-1 rounded inline-block font-bold">
                                                 {project.status}
                                             </div>

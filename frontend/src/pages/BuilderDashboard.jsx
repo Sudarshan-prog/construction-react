@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, LogOut, Plus, Users, Layout, Briefcase } from 'lucide-react';
+import { getContractorQuotes } from '../api/quoteApi';
+import { projectApi } from '../api/projectApi';
 
 const BuilderDashboard = () => {
     const navigate = useNavigate();
@@ -16,23 +18,32 @@ const BuilderDashboard = () => {
         }
     });
 
-    // Sample data for leads and projects
-    const [leads] = useState([
-        { id: 101, name: 'Suresh Kumar', email: 'suresh@example.com', type: 'Residential', status: 'Quote Sent' },
-        { id: 102, name: 'Priya Rajan', email: 'priya@example.com', type: 'Commercial', status: 'New Inquiry' },
-        { id: 103, name: 'Vikram Singh', email: 'vikram@example.com', type: 'Renovation', status: 'Site Visit Scheduled' }
-    ]);
-
-    const [projects] = useState([
-        { id: 501, name: 'Skyview Apartments', location: 'Chennai', progress: 75, deadline: 'May 2026' },
-        { id: 502, name: 'Metro Plaza', location: 'Madurai', progress: 30, deadline: 'Dec 2026' }
-    ]);
+    // State for leads and projects
+    const [leads, setLeads] = useState([]);
+    const [projects, setProjects] = useState([]);
 
     useEffect(() => {
         if (!user) {
             navigate('/login');
         } else if (user.role !== 'builder') {
             navigate('/');
+        } else {
+            const fetchData = async () => {
+                try {
+                    const quotesData = await getContractorQuotes();
+                    setLeads(quotesData);
+                } catch (err) {
+                    console.error('Failed to fetch leads', err);
+                }
+                try {
+                    // For now, fetch all projects. Ideally we'd fetch only the builder's projects.
+                    const projData = await projectApi.getAll();
+                    setProjects(projData);
+                } catch (err) {
+                    console.error('Failed to fetch projects', err);
+                }
+            };
+            fetchData();
         }
     }, [user, navigate]);
 
@@ -95,7 +106,7 @@ const BuilderDashboard = () => {
                             <span className="text-xs font-bold text-orange-400 bg-orange-400/10 px-2 py-1 rounded">Action Required</span>
                         </div>
                         <h3 className="text-gray-400 font-medium">New Quote Requests</h3>
-                        <p className="text-3xl font-bold text-white mt-1">08</p>
+                        <p className="text-3xl font-bold text-white mt-1">{leads.length}</p>
                     </div>
 
                     <div className="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-lg hover:border-emerald-500/40 transition-colors group">
@@ -106,7 +117,7 @@ const BuilderDashboard = () => {
                             <span className="text-xs font-bold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded">Active</span>
                         </div>
                         <h3 className="text-gray-400 font-medium">Projects Under Construction</h3>
-                        <p className="text-3xl font-bold text-white mt-1">15</p>
+                        <p className="text-3xl font-bold text-white mt-1">{projects.length}</p>
                     </div>
                 </div>
 
@@ -152,7 +163,7 @@ const BuilderDashboard = () => {
                                             </div>
                                             <div>
                                                 <p className="font-bold text-gray-200">{lead.name}</p>
-                                                <p className="text-xs text-gray-500">{lead.type} • {lead.email}</p>
+                                                <p className="text-xs text-gray-500">{lead.projectType} • {lead.email}</p>
                                             </div>
                                         </div>
                                         <div className="text-right">
