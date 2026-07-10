@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, X, Send, User, Bot, MinusSquare } from 'lucide-react';
+import { MessageSquare, MessageCircle, X, Send, User, Bot, MinusSquare } from 'lucide-react';
 import { apiClient } from '../api/apiClient';
 
 const Chatbot = () => {
